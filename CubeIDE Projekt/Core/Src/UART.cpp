@@ -71,7 +71,7 @@ void UART::sendBATstatus()
 
 void UART::sendTEMPstatus()
 {
-	uint16_t pcbTemp = (uint16_t)(_tempPCB->readTemperature() * 100);
+	uint16_t pcbTemp = (uint16_t)(_tempPCB->readTemperature()* 100);
 	uint16_t iotTemp = (uint16_t)(0 * 100);
 	uint16_t outTemp = (uint16_t)(0 * 100);
 	uint16_t humidity = (uint16_t)(0 * 10);

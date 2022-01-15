@@ -18,6 +18,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <mpu6050.hpp>
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -31,6 +32,7 @@
 #include "Timing.hpp"
 #include "Servo.hpp"
 #include "LED.hpp"
+#include "sht3x.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -130,7 +132,9 @@ int main(void)
 
   LED led = LED();
   ADC adc = ADC(&hadc1);
-  PRINTER printer = PRINTER(&huart1);
+  PRINTER printer = PRINTER(&huart3);
+
+  printer.printFloat(0);
 
   RAILCONTROL rail = RAILCONTROL();
   TIMER timer = TIMER(&htim2);
@@ -138,6 +142,10 @@ int main(void)
 
   UART uart = UART(&huart1, &ina, &printer, &tempPCB);
   SERVO servo = SERVO(&htim3);
+
+  MPU6050_t MPU6050;
+
+  //while(MPU6050_Init(&hi2c1) == 1);
 
   led.setSTAT1(true);
   led.setSTAT2(true);
@@ -158,6 +166,12 @@ int main(void)
   //HAL_Delay(1000);
 
   //ultra.sendPulse();
+  sht3x_handle_t handle = {
+      .i2c_handle = &hi2c1,
+      .device_address = SHT3X_I2C_DEVICE_ADDRESS_ADDR_PIN_LOW
+  };
+  sht3x_init(&handle);
+
 
   /* USER CODE END 2 */
 
@@ -179,36 +193,21 @@ int main(void)
 		    led.toggleSTAT(2);
 	    }
 
+		//MPU6050_Read_All(&hi2c1, &MPU6050);
+		//float temperature, humidity;
+		//sht3x_read_temperature_and_humidity(&handle, &temperature, &humidity);
+
+
+
 	    if(TIM4->CNT >= 100) {
-	    	batCnt++;
 	    	TIM4->CNT = 0;
 	    	uart.sendBATstatus();
 	    }
 
-	    if(batCnt >= 10)
-	    {
-	    	timer.delayUS(3000);
-	    	tempCnt++;
-	    	batCnt = 0;
-	    	uart.sendBATstatus();
-	    }
 
-	    if(tempCnt >= 3)
-		{
-	    	timer.delayUS(5000);
-			tempCnt = 0;
-			uart.sendTEMPstatus();
-		}
 
-	    /*
-	    if(TIM2->CNT >= 1000)
-		{
-			uint8_t color2[3] = {128, 0, 0};
-			led._updateCNT++;
-			TIM2->CNT = 0;
-			led.animateSine(color2, 1, 250, 0.8);
-		}
-		*/
+
+
 
 
 

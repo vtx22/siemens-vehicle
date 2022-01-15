@@ -3,20 +3,6 @@
 #include "stm32f1xx_hal.h"
 #include <math.h>
 
-typedef struct RgbColor
-{
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-} RgbColor;
-
-typedef struct HsvColor
-{
-    unsigned char h;
-    unsigned char s;
-    unsigned char v;
-} HsvColor;
-
 class LED
 {
 	public:
@@ -47,8 +33,6 @@ class LED
 		void increaseColor(uint8_t id, uint8_t step, uint8_t led);
 		void decreaseColor(uint8_t id, uint8_t step, uint8_t led);
 
-		RgbColor HsvToRgb(HsvColor hsv);
-		HsvColor RgbToHsv(RgbColor rgb);
 		static const uint8_t _neoLEDS = 56;
 
 		uint8_t ledBufferRED[_neoLEDS];

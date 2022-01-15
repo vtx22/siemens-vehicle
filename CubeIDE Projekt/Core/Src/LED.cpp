@@ -1,85 +1,4 @@
 #include "LED.hpp"
-
-
-RgbColor LED::HsvToRgb(HsvColor hsv)
-{
-    RgbColor rgb;
-    unsigned char region, remainder, p, q, t;
-
-    if (hsv.s == 0)
-    {
-        rgb.r = hsv.v;
-        rgb.g = hsv.v;
-        rgb.b = hsv.v;
-        return rgb;
-    }
-
-    region = hsv.h / 43;
-    remainder = (hsv.h - (region * 43)) * 6;
-
-    p = (hsv.v * (255 - hsv.s)) >> 8;
-    q = (hsv.v * (255 - ((hsv.s * remainder) >> 8))) >> 8;
-    t = (hsv.v * (255 - ((hsv.s * (255 - remainder)) >> 8))) >> 8;
-
-    switch (region)
-    {
-        case 0:
-            rgb.r = hsv.v; rgb.g = t; rgb.b = p;
-            break;
-        case 1:
-            rgb.r = q; rgb.g = hsv.v; rgb.b = p;
-            break;
-        case 2:
-            rgb.r = p; rgb.g = hsv.v; rgb.b = t;
-            break;
-        case 3:
-            rgb.r = p; rgb.g = q; rgb.b = hsv.v;
-            break;
-        case 4:
-            rgb.r = t; rgb.g = p; rgb.b = hsv.v;
-            break;
-        default:
-            rgb.r = hsv.v; rgb.g = p; rgb.b = q;
-            break;
-    }
-
-    return rgb;
-}
-
-HsvColor LED::RgbToHsv(RgbColor rgb)
-{
-    HsvColor hsv;
-    unsigned char rgbMin, rgbMax;
-
-    rgbMin = rgb.r < rgb.g ? (rgb.r < rgb.b ? rgb.r : rgb.b) : (rgb.g < rgb.b ? rgb.g : rgb.b);
-    rgbMax = rgb.r > rgb.g ? (rgb.r > rgb.b ? rgb.r : rgb.b) : (rgb.g > rgb.b ? rgb.g : rgb.b);
-
-    hsv.v = rgbMax;
-    if (hsv.v == 0)
-    {
-        hsv.h = 0;
-        hsv.s = 0;
-        return hsv;
-    }
-
-    hsv.s = 255 * long(rgbMax - rgbMin) / hsv.v;
-    if (hsv.s == 0)
-    {
-        hsv.h = 0;
-        return hsv;
-    }
-
-    if (rgbMax == rgb.r)
-        hsv.h = 0 + 43 * (rgb.g - rgb.b) / (rgbMax - rgbMin);
-    else if (rgbMax == rgb.g)
-        hsv.h = 85 + 43 * (rgb.b - rgb.r) / (rgbMax - rgbMin);
-    else
-        hsv.h = 171 + 43 * (rgb.r - rgb.g) / (rgbMax - rgbMin);
-
-    return hsv;
-}
-
-
 LED::LED()
 {
 	setAllNeopixels(0x00, 0x00, 0x00);
@@ -165,28 +84,151 @@ void LED::animateSine(uint8_t* baseColor, float speed, float scaling, float dimm
 	updateNeopixels();
 }
 
-
-uint8_t hue = 0;
+bool firstAnimation = true;
 void LED::animateRainbow(float speed, float dimming)
 {
 	uint8_t step = 1;
-	uint8_t scaling = 1;
-
-	for(uint8_t ledX = 0; ledX < _neoLEDS; ledX++)
-	{
-			HsvColor color = { hue + ledX * scaling, 255, 255 };
-			RgbColor rgb = HsvToRgb(color);
-			setNeopixelNOUP(rgb.r, rgb.g, rgb.b, ledX);
+	if(firstAnimation) {
+		setNeopixel(255 * dimming, 0, 0, 0);
+		firstAnimation = false;
 	}
-
-	if(hue <= 255 - step)
+	uint8_t colorID = 0; //0 = red, 1 = green, 3 = blue
+	bool increase = true;
+	if(true)
 	{
-		hue += step;
-	}
+		for(uint8_t ledsX = 1; ledsX < _neoLEDS; ledsX++)
+		{
+			uint8_t leds;
+			leds = ledsX;
+
+			if(ledBufferRED[leds - 1] == 255 * dimming && ledBufferGREEN[leds - 1] < 255 * dimming && ledBufferBLUE[leds -1] == 0)
+			{
+				increase = true;
+				colorID = 2;
+			}
+
+			else if( ledBufferRED[leds - 1] > 0 && ledBufferGREEN[leds - 1] == 255 * dimming && ledBufferBLUE[leds - 1] == 0)
+			{
+				increase = false;
+				colorID = 1;
+			}
+
+			else if( ledBufferRED[leds - 1] == 0 && ledBufferGREEN[leds - 1] == 255 * dimming && ledBufferBLUE[leds - 1] < 255 * dimming)
+			{
+				increase = true;
+				colorID = 3;
+			}
+
+			else if( ledBufferRED[leds - 1] == 0 && ledBufferGREEN[leds - 1] > 0 && ledBufferBLUE[leds - 1] == 255 * dimming)
+			{
+				increase = false;
+				colorID = 2;
+			}
+
+			else if( ledBufferRED[leds - 1] < 255 * dimming && ledBufferGREEN[leds - 1] == 0 && ledBufferBLUE[leds - 1] == 255 * dimming)
+			{
+				increase = true;
+				colorID = 1;
+			}
+			else if( ledBufferRED[leds - 1] == 255 * dimming && ledBufferGREEN[leds - 1] == 0 && ledBufferBLUE[leds - 1] > 0)
+			{
+				increase = false;
+				colorID = 3;
+			}
+			else
+			{
+				if(ledBufferRED[_neoLEDS - 1] == 255 * dimming && ledBufferGREEN[_neoLEDS - 1] == 0 && ledBufferBLUE[_neoLEDS - 1] == 0) {
+					setNeopixelNOUP(ledBufferRED[_neoLEDS - 1], ledBufferGREEN[_neoLEDS - 1], ledBufferBLUE[_neoLEDS - 1], 0);
+				}
+				else if(ledBufferRED[_neoLEDS - 1] == 255 * dimming && ledBufferGREEN[_neoLEDS - 1] == 255 * dimming && ledBufferBLUE[_neoLEDS - 1] == 0) {
+					setNeopixelNOUP(ledBufferRED[_neoLEDS - 1], ledBufferGREEN[_neoLEDS - 1], ledBufferBLUE[_neoLEDS - 1], 0);
+				}
+				else if(ledBufferRED[_neoLEDS - 1] == 0 && ledBufferGREEN[_neoLEDS - 1] == 255 * dimming && ledBufferBLUE[_neoLEDS - 1] == 0) {
+									setNeopixelNOUP(ledBufferRED[_neoLEDS - 1], ledBufferGREEN[_neoLEDS - 1], ledBufferBLUE[_neoLEDS - 1], 0);
+								}
+				else if(ledBufferRED[_neoLEDS - 1] == 255 * dimming && ledBufferGREEN[_neoLEDS - 1] == 255 * dimming && ledBufferBLUE[_neoLEDS - 1] == 0) {
+									setNeopixelNOUP(ledBufferRED[_neoLEDS - 1], ledBufferGREEN[_neoLEDS - 1], ledBufferBLUE[_neoLEDS - 1], 0);
+								}
+				else if(ledBufferRED[_neoLEDS - 1] == 0 && ledBufferGREEN[_neoLEDS - 1] == 255 * dimming && ledBufferBLUE[_neoLEDS - 1] == 255 * dimming) {
+									setNeopixelNOUP(ledBufferRED[_neoLEDS - 1], ledBufferGREEN[_neoLEDS - 1], ledBufferBLUE[_neoLEDS - 1], 0);
+								}
+				else if(ledBufferRED[_neoLEDS - 1] == 0 && ledBufferGREEN[_neoLEDS - 1] == 0 && ledBufferBLUE[_neoLEDS - 1] == 255 * dimming) {
+									setNeopixelNOUP(ledBufferRED[_neoLEDS - 1], ledBufferGREEN[_neoLEDS - 1], ledBufferBLUE[_neoLEDS - 1], 0);
+								}
+				else if(ledBufferRED[_neoLEDS - 1] == 255 * dimming && ledBufferGREEN[_neoLEDS - 1] == 0 && ledBufferBLUE[_neoLEDS - 1] == 255 * dimming) {
+									setNeopixelNOUP(ledBufferRED[_neoLEDS - 1], ledBufferGREEN[_neoLEDS - 1], ledBufferBLUE[_neoLEDS - 1], 0);
+								}
+			}
+
+
+			if(increase)
+			{
+				increaseColor(colorID, step, leds);
+			}
+			else
+			{
+				decreaseColor(colorID, step, leds);
+			}
+		}
+
+		}
+	/*
 	else
 	{
-		hue = 0;
+		uint8_t colorID = 0; //0 = red, 1 = green, 3 = blue
+		bool increase = true;
+		for(uint8_t leds = 0; leds < _neoLEDS; leds++)
+		{
+			if(ledBufferRED[leds - 1] == 255 * dimming && ledBufferGREEN[leds - 1] < 255 * dimming && ledBufferBLUE[leds -1] == 0)
+			{
+				increase = true;
+				colorID = 2;
+			}
+
+			if( ledBufferRED[leds - 1] > 0 && ledBufferGREEN[leds - 1] == 255 * dimming && ledBufferBLUE[leds - 1] == 0)
+			{
+				increase = false;
+				colorID = 1;
+			}
+
+			if( ledBufferRED[leds - 1] == 0 && ledBufferGREEN[leds - 1] == 255 * dimming && ledBufferBLUE[leds - 1] < 255 * dimming)
+			{
+				increase = true;
+				colorID = 3;
+			}
+
+			if( ledBufferRED[leds - 1] == 0 && ledBufferGREEN[leds - 1] > 0 && ledBufferBLUE[leds - 1] == 255 * dimming)
+			{
+				increase = false;
+				colorID = 2;
+			}
+
+			if( ledBufferRED[leds - 1] < 255 * dimming && ledBufferGREEN[leds - 1] == 0 && ledBufferBLUE[leds - 1] == 255 * dimming)
+			{
+				increase = true;
+				colorID = 1;
+			}
+			if( ledBufferRED[leds - 1] == 255 * dimming && ledBufferGREEN[leds - 1] == 0 && ledBufferBLUE[leds - 1] > 0)
+			{
+				increase = false;
+				colorID = 3;
+			}
+
+
+			if(increase)
+			{
+				increaseColor(colorID, step, leds);
+			}
+			else
+			{
+				decreaseColor(colorID, step, leds);
+			}
 	}
+
+	}
+*/
+
+
 
 	updateNeopixels();
 }
