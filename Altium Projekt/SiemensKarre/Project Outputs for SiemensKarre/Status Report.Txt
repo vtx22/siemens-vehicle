@@ -1,0 +1,12 @@
+Output: NC Drill Files
+Type  : NC Drill
+From  : Project [SiemensKarre.PrjPcb]
+   Generated File[PSU PCB.TXT]
+   Generated File[PSU PCB.LDP]
+   Generated File[PSU PCB.DRR]
+
+
+Files Generated   : 3
+Documents Printed : 0
+
+Finished Output Generation At 18:03:40 On 05.11.2021
