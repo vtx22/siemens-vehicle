@@ -23,7 +23,10 @@ class UART
 		//== TRANSMITTING DATA ==//
 		void sendStatus(uint8_t code);
 		void sendBATstatus();
-		void sendTEMPstatus();
+		void sendTEMPstatus(float outsideTemp, float hum);
+		void sendGYROAngle(float angleX, float angleY);
+		void sendGYROAccel(float accX, float accY, float accZ);
+		void sendGYROVeloc(float velX, float velY, float velZ);
 
 		template<size_t SIZE>
 		void sendBytes(std::array<uint8_t, SIZE>& data)

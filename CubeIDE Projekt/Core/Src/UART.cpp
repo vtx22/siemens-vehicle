@@ -55,6 +55,67 @@ uint8_t UART::calculateChecksum(uint8_t* msg)
 	return cs;
 }
 
+void UART::sendGYROAngle(float angleX, float angleY)
+{
+	std::array<uint8_t, TX_BUF_SIZE> data;
+	data[0] = _id;
+	data[1] = 0x87;
+
+	int32_t angleXInt = (int32_t)(angleX * 1000.f);
+	int32_t angleYInt = (int32_t)(angleY * 1000.f);
+
+	data[2] = (uint8_t)(angleXInt >> 24);
+	data[3] = (uint8_t)(angleXInt >> 16);
+	data[4] = (uint8_t)(angleXInt >> 8);
+	data[5] = (uint8_t)(angleXInt);
+	data[6] = (uint8_t)(angleYInt >> 24);
+	data[7] = (uint8_t)(angleYInt >> 16);
+	data[8] = (uint8_t)(angleYInt >> 8);
+	data[9] = (uint8_t)(angleYInt);
+	data[TX_BUF_SIZE - 1] = calculateChecksum(data);
+	sendBytes(data);
+}
+
+void UART::sendGYROAccel(float accX, float accY, float accZ)
+{
+	std::array<uint8_t, TX_BUF_SIZE> data;
+	data[0] = _id;
+	data[1] = 0x88;
+
+	uint16_t accelX = (uint16_t)(accX * 10);
+	uint16_t accelY = (uint16_t)(accY * 10);
+	uint16_t accelZ = (uint16_t)(accZ * 10);
+
+	data[2] = (accelX >> 8);
+	data[3] = accelX;
+	data[4] = (accelY >> 8);
+	data[5] = accelY;
+	data[6] = (accelZ >> 8);
+	data[7] = accelZ;
+	data[TX_BUF_SIZE - 1] = calculateChecksum(data);
+	sendBytes(data);
+}
+
+void UART::sendGYROVeloc(float velX, float velY, float velZ)
+{
+	std::array<uint8_t, TX_BUF_SIZE> data;
+	data[0] = _id;
+	data[1] = 0x89;
+
+	uint16_t veloX = (uint16_t)(velX * 10);
+	uint16_t veloY = (uint16_t)(velY * 10);
+	uint16_t veloZ = (uint16_t)(velZ * 10);
+
+	data[2] = (veloX >> 8);
+	data[3] = veloX;
+	data[4] = (veloY >> 8);
+	data[5] = veloY;
+	data[6] = (veloZ >> 8);
+	data[7] = veloZ;
+	data[TX_BUF_SIZE - 1] = calculateChecksum(data);
+	sendBytes(data);
+}
+
 void UART::sendStatus(uint8_t code)
 {
 	std::array<uint8_t, TX_BUF_SIZE> data = statusMessage(code);
@@ -62,19 +123,19 @@ void UART::sendStatus(uint8_t code)
 }
 void UART::sendBATstatus()
 {
-	uint16_t voltage = (uint16_t)(_ina->getBusVol() * 1000);
-	int16_t current = (int16_t)(_ina->getCurrent() * 1000);
+	uint16_t voltage = (uint16_t)(_ina->getBusVol() * 1000.f);
+	int16_t current = (int16_t)(_ina->getCurrent() * 1000.f);
 
 	std::array<uint8_t, TX_BUF_SIZE> data = batteryStatus(voltage, current);
 	sendBytes(data);
 }
 
-void UART::sendTEMPstatus()
+void UART::sendTEMPstatus(float outsideTemp, float hum)
 {
 	uint16_t pcbTemp = (uint16_t)(_tempPCB->readTemperature()* 100);
 	uint16_t iotTemp = (uint16_t)(0 * 100);
-	uint16_t outTemp = (uint16_t)(0 * 100);
-	uint16_t humidity = (uint16_t)(0 * 10);
+	uint16_t outTemp = (uint16_t)(outsideTemp * 100);
+	uint16_t humidity = (uint16_t)(hum * 10);
 
 
 	std::array<uint8_t, TX_BUF_SIZE> data = tempStatus(pcbTemp, iotTemp, outTemp, humidity);
@@ -125,8 +186,8 @@ std::array<uint8_t, TX_BUF_SIZE> UART::batteryStatus(uint16_t voltage, int16_t c
     bytearray.at(1) = CMD_ID;
     bytearray.at(2) = voltage >> 8;
     bytearray.at(3) = voltage;
-    bytearray.at(4) = current >> 8;
-    bytearray.at(5) = current;
+    bytearray.at(4) = (uint8_t)(current >> 8);
+    bytearray.at(5) = (uint8_t)current;
     bytearray.at(TX_BUF_SIZE - 1) = calculateChecksum(bytearray);
 
     return bytearray;

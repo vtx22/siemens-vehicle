@@ -77,7 +77,7 @@ class INA226
 
 		uint16_t _cal = 1024;
 		float _shuntResistance = 0.01;			//Shunt Resistance in Ohms
-		float _currentResolution = 0.00005;		//Calculated Current Resolution 	in A/Bit
+		float _currentResolution = 0.0005;		//Calculated Current Resolution 	in A/Bit
 		float _voltageResolutionBus = 1.25e-3;	//Fixed Bus Voltage Resolution		in V/Bit
 		float _voltageResolutionShunt = 2.5e-6;	//Fixed Shunt Voltage Resolution	in V/Bit
 

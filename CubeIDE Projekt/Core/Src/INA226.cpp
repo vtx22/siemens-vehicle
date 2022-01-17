@@ -3,7 +3,9 @@
 INA226::INA226(I2C_HandleTypeDef* hi2c) : _hi2c(hi2c)
 {
 	_i2c = new I2C(_hi2c);
+
 	updateConfiguration();
+
 }
 
 void INA226::updateConfiguration()
@@ -25,7 +27,7 @@ float INA226::getShuntVol()
 	uint8_t data[2] = {0x00, 0x00};
 	_i2c->readMultiBytes(_address, SHUNTVOL_REG, data, 2);
 
-	return (float)((int16_t)((data[0] << 8) + data[1]) * _voltageResolutionShunt);
+	return -(float)((int16_t)((data[0] << 8) + data[1]) * _voltageResolutionShunt);
 }
 
 float INA226::getBusVol()
@@ -49,7 +51,7 @@ float INA226::getCurrent()
 	uint8_t data[2] = {0x00, 0x00};
 	_i2c->readMultiBytes(_address, CURRENT_REG, data, 2);
 
-	return (float)(((data[0] << 8) + data[1]) * _currentResolution);
+	return -(float)(((int16_t)(data[0] << 8) + data[1]) * _currentResolution);
 }
 
 void INA226::calibrateDevice()

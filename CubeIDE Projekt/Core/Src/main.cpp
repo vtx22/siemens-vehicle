@@ -128,29 +128,76 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+
+  //Create INA226 Power Monitor Object
   INA226 ina = INA226(&hi2c1);
 
+  //Create LED Object
   LED led = LED();
-  ADC adc = ADC(&hadc1);
-  PRINTER printer = PRINTER(&huart3);
 
-  printer.printFloat(0);
-
-  RAILCONTROL rail = RAILCONTROL();
-  TIMER timer = TIMER(&htim2);
-  DS18B20 tempPCB = DS18B20(&timer);
-
-  UART uart = UART(&huart1, &ina, &printer, &tempPCB);
-  SERVO servo = SERVO(&htim3);
-
-  MPU6050_t MPU6050;
-
-  //while(MPU6050_Init(&hi2c1) == 1);
-
-  led.setSTAT1(true);
+  led.setSTAT1(false);
   led.setSTAT2(true);
 
-  ULTRA ultra = ULTRA(GPIOA, GPIO_PIN_12, GPIOA, GPIO_PIN_11, &timer);
+  for(uint8_t cnt = 0; cnt < 7; cnt++)
+  {
+	  led.toggleSTAT(2);
+	  HAL_Delay(1000);
+  }
+  led.setSTAT2(true);
+
+  //Create ADC Object
+  ADC adc = ADC(&hadc1);
+
+  //Create PRINTER for Debug Messages
+  PRINTER printer = PRINTER(&huart3);
+
+  //Create RAILCONTROL for toggeling voltage rails
+  RAILCONTROL rail = RAILCONTROL();
+
+  //Create TIMER Object for DS18B20
+  TIMER timer = TIMER(&htim2);
+  //Create DS18B20 Object for On-Board Sensor
+  DS18B20 tempPCB = DS18B20(&timer);
+
+  //Create UART Handler
+  UART uart = UART(&huart1, &ina, &printer, &tempPCB);
+
+  //Create Servo Object
+  SERVO servo = SERVO(&htim3);
+
+  //Create MPU6050 Gyro Object
+  MPU6050_t MPU6050;
+  //Try to initialise Gyroscope Sensor
+  uint8_t mpuInitTry = 0;
+  bool gyroInitialised = true;
+
+  while(MPU6050_Init(&hi2c1) == 1)
+  {
+	  if(mpuInitTry >= 5)
+	  {
+		  printer.printString("ERROR: MPU6050 Gyroscope initialisation failed!");
+		  led.setSTAT1(true);
+		  gyroInitialised = false;
+		  break;
+	  }
+	  mpuInitTry++;
+  }
+
+  //Create Handle for SHT31 Sensor
+  sht3x_handle_t handle = {
+        .i2c_handle = &hi2c1,
+        .device_address = SHT3X_I2C_DEVICE_ADDRESS_ADDR_PIN_LOW
+    };
+  //Try to initialise SHT31 Sensor
+  if(!sht3x_init(&handle))
+  {
+	  printer.printString("ERROR: SHT31 Sensor initialisation failed!");
+	  led.setSTAT1(true);
+  }
+
+
+
+  //ULTRA ultra = ULTRA(GPIOA, GPIO_PIN_12, GPIOA, GPIO_PIN_11, &timer);
   //WATCHDOG watchdog = WATCHDOG(&adc, &printer, &rail, &ina);
 
   RX_BUFFER = uart.RXBuffer;
@@ -165,12 +212,7 @@ int main(void)
   //watchdog.fullSelftest();
   //HAL_Delay(1000);
 
-  //ultra.sendPulse();
-  sht3x_handle_t handle = {
-      .i2c_handle = &hi2c1,
-      .device_address = SHT3X_I2C_DEVICE_ADDRESS_ADDR_PIN_LOW
-  };
-  sht3x_init(&handle);
+
 
 
   /* USER CODE END 2 */
@@ -189,19 +231,26 @@ int main(void)
 	      uart.parseMessage();
 	      parse_uart = false;
 
-		    led.toggleSTAT(1);
-		    led.toggleSTAT(2);
+	      led.toggleSTAT(2);
 	    }
 
-		//MPU6050_Read_All(&hi2c1, &MPU6050);
+
+
 		//float temperature, humidity;
 		//sht3x_read_temperature_and_humidity(&handle, &temperature, &humidity);
 
+	    uart.sendBATstatus();
+	    HAL_Delay(200);
+	    if(gyroInitialised)
+		{
+			MPU6050_Read_All(&hi2c1, &MPU6050);
+			uart.sendGYROAngle(MPU6050.KalmanAngleX, MPU6050.KalmanAngleY);
+		}
+	    HAL_Delay(200);
 
 
-	    if(TIM4->CNT >= 100) {
+	    if(TIM4->CNT >= 500) {
 	    	TIM4->CNT = 0;
-	    	uart.sendBATstatus();
 	    }
 
 
