@@ -61,8 +61,8 @@ void UART::sendGYROAngle(float angleX, float angleY)
 	data[0] = _id;
 	data[1] = 0x87;
 
-	int32_t angleXInt = (int32_t)(angleX * 1000.f);
-	int32_t angleYInt = (int32_t)(angleY * 1000.f);
+	int32_t angleXInt = (int32_t)(angleX * 1000);
+	int32_t angleYInt = (int32_t)(angleY * 1000);
 
 	data[2] = (uint8_t)(angleXInt >> 24);
 	data[3] = (uint8_t)(angleXInt >> 16);
