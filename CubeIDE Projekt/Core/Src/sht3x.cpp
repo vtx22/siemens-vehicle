@@ -73,6 +73,8 @@ bool sht3x_init(sht3x_handle_t *handle)
 
 bool sht3x_read_temperature_and_humidity(sht3x_handle_t *handle, float *temperature, float *humidity)
 {
+	*temperature = 0.f;
+	*humidity = 0.f;
 	sht3x_send_command(handle, SHT3X_COMMAND_MEASURE_HIGHREP_STRETCH);
 
 	HAL_Delay(1);

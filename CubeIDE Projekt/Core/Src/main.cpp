@@ -42,6 +42,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define UART_DATA_DELAY 100
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -129,6 +130,16 @@ int main(void)
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 
+
+  //Create RAILCONTROL for toggling voltage rails
+  RAILCONTROL rail = RAILCONTROL();
+  rail.set24VRail(false);
+  rail.setADJRail(false);
+
+  //Create PRINTER for Debug Messages
+  PRINTER printer = PRINTER(&huart3);
+  printer.printString("PCB: BOOTING....");
+
   //Create INA226 Power Monitor Object
   INA226 ina = INA226(&hi2c1);
 
@@ -138,7 +149,7 @@ int main(void)
   led.setSTAT1(false);
   led.setSTAT2(true);
 
-  for(uint8_t cnt = 0; cnt < 7; cnt++)
+  for(uint8_t cnt = 0; cnt < 10; cnt++)
   {
 	  led.toggleSTAT(2);
 	  HAL_Delay(1000);
@@ -148,12 +159,6 @@ int main(void)
   //Create ADC Object
   ADC adc = ADC(&hadc1);
 
-  //Create PRINTER for Debug Messages
-  PRINTER printer = PRINTER(&huart3);
-
-  //Create RAILCONTROL for toggeling voltage rails
-  RAILCONTROL rail = RAILCONTROL();
-
   //Create TIMER Object for DS18B20
   TIMER timer = TIMER(&htim2);
   //Create DS18B20 Object for On-Board Sensor
@@ -161,6 +166,7 @@ int main(void)
 
   //Create UART Handler
   UART uart = UART(&huart1, &ina, &printer, &tempPCB);
+  RX_BUFFER = uart.RXBuffer;  //Make the pointer to RXBuffer globally available, needed for the ISR
 
   //Create Servo Object
   SERVO servo = SERVO(&htim3);
@@ -175,7 +181,7 @@ int main(void)
   {
 	  if(mpuInitTry >= 5)
 	  {
-		  printer.printString("ERROR: MPU6050 Gyroscope initialisation failed!");
+		  printer.printString("ERROR: MPU6050 Gyroscope initialization failed!");
 		  led.setSTAT1(true);
 		  gyroInitialised = false;
 		  break;
@@ -187,11 +193,13 @@ int main(void)
   sht3x_handle_t handle = {
         .i2c_handle = &hi2c1,
         .device_address = SHT3X_I2C_DEVICE_ADDRESS_ADDR_PIN_LOW
-    };
+  };
   //Try to initialise SHT31 Sensor
+  bool shtInitialised = true;
   if(!sht3x_init(&handle))
   {
-	  printer.printString("ERROR: SHT31 Sensor initialisation failed!");
+	  printer.printString("ERROR: SHT31 Sensor initialization failed!");
+	  shtInitialised = false;
 	  led.setSTAT1(true);
   }
 
@@ -200,10 +208,9 @@ int main(void)
   //ULTRA ultra = ULTRA(GPIOA, GPIO_PIN_12, GPIOA, GPIO_PIN_11, &timer);
   //WATCHDOG watchdog = WATCHDOG(&adc, &printer, &rail, &ina);
 
-  RX_BUFFER = uart.RXBuffer;
 
-  rail.set24VRail(false);
-  rail.setADJRail(false);
+
+
 
   HAL_TIM_Base_Start(&htim1);
   HAL_TIM_Base_Start(&htim2);
@@ -236,18 +243,24 @@ int main(void)
 
 
 
-		//float temperature, humidity;
-		//sht3x_read_temperature_and_humidity(&handle, &temperature, &humidity);
+
 
 	    uart.sendBATstatus();
-	    HAL_Delay(200);
+	    HAL_Delay(UART_DATA_DELAY);
 	    if(gyroInitialised)
 		{
 			MPU6050_Read_All(&hi2c1, &MPU6050);
 			uart.sendGYROAngle(MPU6050.KalmanAngleX, MPU6050.KalmanAngleY);
+			HAL_Delay(UART_DATA_DELAY / 2);
+			uart.sendGYROAccel(MPU6050.Ax, MPU6050.Ay, MPU6050.Az);
+			HAL_Delay(UART_DATA_DELAY / 2);
+			uart.sendGYROVeloc(MPU6050.Gx, MPU6050.Gy, MPU6050.Gz);
 		}
-	    HAL_Delay(200);
-
+	    HAL_Delay(UART_DATA_DELAY);
+	    float temperature, humidity;
+	    sht3x_read_temperature_and_humidity(&handle, &temperature, &humidity);
+	    uart.sendTEMPstatus(temperature, humidity);
+	    HAL_Delay(UART_DATA_DELAY);
 
 	    if(TIM4->CNT >= 500) {
 	    	TIM4->CNT = 0;
