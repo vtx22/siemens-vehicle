@@ -18,7 +18,6 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <mpu6050.hpp>
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -66,6 +65,7 @@ UART_HandleTypeDef huart3;
 /* USER CODE BEGIN PV */
 uint8_t *RX_BUFFER;
 bool parse_uart = false;
+bool ledRefresh = false;
 
 bool first = true;
 bool measured = true;
@@ -139,38 +139,59 @@ int main(void)
   //Create PRINTER for Debug Messages
   PRINTER printer = PRINTER(&huart3);
   printer.printString("PCB: BOOTING....");
+  HAL_Delay(1000);
 
+  printer.printString("Initializing INA226...");
   //Create INA226 Power Monitor Object
   INA226 ina = INA226(&hi2c1);
 
+  printer.printString("Initializing LEDs...");
   //Create LED Object
   LED led = LED();
+
 
   led.setSTAT1(false);
   led.setSTAT2(true);
 
-  for(uint8_t cnt = 0; cnt < 10; cnt++)
+  led.setAllNeopixels(0, 0, 0);
+  HAL_Delay(500);
+  led.setNeopixel(255,255,255, 10);
+  for(uint8_t cnt = 0; cnt < 11; cnt++)
+    {
+	  led.setNeopixel(255,255,255, 11+cnt);
+  	led.setNeopixel(255,255,255, 10-cnt);
+  	HAL_Delay(50);
+    }
+
+  printer.printString("Waiting for a few seconds....");
+  for(uint8_t cnt = 0; cnt < 5; cnt++)
   {
 	  led.toggleSTAT(2);
 	  HAL_Delay(1000);
   }
   led.setSTAT2(true);
 
+  printer.printString("Initializing ADCs...");
   //Create ADC Object
   ADC adc = ADC(&hadc1);
 
+
+  printer.printString("Initializing DS18B20...");
   //Create TIMER Object for DS18B20
   TIMER timer = TIMER(&htim2);
   //Create DS18B20 Object for On-Board Sensor
   DS18B20 tempPCB = DS18B20(&timer);
 
+  printer.printString("Initializing UART1 Communication Handler...");
   //Create UART Handler
   UART uart = UART(&huart1, &ina, &printer, &tempPCB);
   RX_BUFFER = uart.RXBuffer;  //Make the pointer to RXBuffer globally available, needed for the ISR
 
+  printer.printString("Initializing Servo...");
   //Create Servo Object
   SERVO servo = SERVO(&htim3);
 
+  printer.printString("Initializing MPU6050 Gyroscope...");
   //Create MPU6050 Gyro Object
   MPU6050_t MPU6050;
   //Try to initialise Gyroscope Sensor
@@ -189,6 +210,7 @@ int main(void)
 	  mpuInitTry++;
   }
 
+  printer.printString("Initializing SHT31 Temperature Sensor...");
   //Create Handle for SHT31 Sensor
   sht3x_handle_t handle = {
         .i2c_handle = &hi2c1,
@@ -211,7 +233,7 @@ int main(void)
 
 
 
-
+  printer.printString("Initializing Hardware Timer...");
   HAL_TIM_Base_Start(&htim1);
   HAL_TIM_Base_Start(&htim2);
   HAL_TIM_Base_Start(&htim3);
@@ -220,7 +242,7 @@ int main(void)
   //HAL_Delay(1000);
 
 
-
+  printer.printString("Success! Entering main loop!");
 
   /* USER CODE END 2 */
 
@@ -228,6 +250,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   uint8_t batCnt = 0;
   uint8_t tempCnt = 0;
+  uint32_t ledTicks = HAL_GetTick();
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -241,14 +265,31 @@ int main(void)
 	      led.toggleSTAT(2);
 	    }
 
+	    if(HAL_GetTick() - ledTicks >= 50)
+	    {
+	    	ledTicks = HAL_GetTick();
+	    	led._updateCNT++;
+			switch(led._mode)
+			{
+			case LED_BLINK_RIGHT:
 
+				break;
 
+			case LED_IDLE:
+			default:
+				uint8_t baseColor[3]={128,0,0};
+				led.animateSine(baseColor, 0.2, 200, 1);
+				break;
+			}
+	    }
 
+	    tempCnt++;
 
 	    uart.sendBATstatus();
-	    HAL_Delay(UART_DATA_DELAY);
+
 	    if(gyroInitialised)
 		{
+	    	HAL_Delay(UART_DATA_DELAY);
 			MPU6050_Read_All(&hi2c1, &MPU6050);
 			uart.sendGYROAngle(MPU6050.KalmanAngleX, MPU6050.KalmanAngleY);
 			HAL_Delay(UART_DATA_DELAY / 2);
@@ -256,17 +297,47 @@ int main(void)
 			HAL_Delay(UART_DATA_DELAY / 2);
 			uart.sendGYROVeloc(MPU6050.Gx, MPU6050.Gy, MPU6050.Gz);
 		}
-	    HAL_Delay(UART_DATA_DELAY);
-	    float temperature, humidity;
-	    sht3x_read_temperature_and_humidity(&handle, &temperature, &humidity);
-	    uart.sendTEMPstatus(temperature, humidity);
-	    HAL_Delay(UART_DATA_DELAY);
-
-	    if(TIM4->CNT >= 500) {
-	    	TIM4->CNT = 0;
+	    if(tempCnt >= 10)
+	    {
+	    	float temperature=0, humidity = 0;
+			if(shtInitialised)
+			{
+				sht3x_read_temperature_and_humidity(&handle, &temperature, &humidity);
+			}
+	    	//uart.sendTEMPstatus(temperature, humidity);
+	    	tempCnt = 0;
 	    }
 
+	    HAL_Delay(UART_DATA_DELAY);
+	    /*
+	    uint8_t baseColor[3] = {0,0,128};
+	    if(TIM4->CNT >= 50) {
+	    	led._updateCNT++;
+	    	led.animateSine(baseColor, 0.2, 150, 1);
+	    	TIM4->CNT = 0;
+	    }
+		*/
+	    /*
+	    for(uint8_t cnt = 5; cnt < 22 - 5; cnt++)
+	    {
+	    	led.setNeopixel(255,255,255, cnt);
+	    }
 
+	    uint8_t color[3] = {255,100,0};
+	    for(uint8_t cnt = 0; cnt < 5; cnt++)
+	    {
+	    	led.setNeopixel(color, 5-cnt);
+	    	led.setNeopixel(color, 21-5+cnt);
+	    	HAL_Delay(50);
+	    }
+	    HAL_Delay(700);
+	    for(uint8_t cnt = 0; cnt < 5; cnt++)
+		{
+			led.setNeopixel(0,0,0, 5-cnt);
+			led.setNeopixel(0,0,0, 21-5+cnt);
+		}
+
+	    */
 
 
 
@@ -576,7 +647,7 @@ static void MX_TIM4_Init(void)
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 57600-1;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 65535;
+  htim4.Init.Period = 60;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
@@ -739,7 +810,14 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  // Check which version of the timer triggered this callback and toggle LED
+  if (htim == &htim4 )
+  {
+	  ledRefresh = true;
+  }
+}
 /* USER CODE END 4 */
 
 /**

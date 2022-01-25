@@ -3,6 +3,19 @@
 #include "stm32f1xx_hal.h"
 #include <math.h>
 
+enum LED_MODE
+{
+	LED_IDLE = 0x00,
+	LED_BLINK_LEFT = 0x01,
+	LED_BLINK_RIGHT = 0x02,
+	LED_BLINK_BOTH = 0x03,
+	LED_TOGGLE_FRONT = 0x04,
+	LED_TOGLLE_BACK = 0x05,
+	LED_CIRClE_LIGHT = 0x06,
+
+}
+typedef LED_MODE;
+
 class LED
 {
 	public:
@@ -25,6 +38,13 @@ class LED
 		void setAllNeopixels(uint8_t red, uint8_t green, uint8_t blue);
 
 		uint32_t _updateCNT = 0;
+		LED_MODE _mode = LED_IDLE;
+		LED_MODE _prevMode = LED_IDLE;
+
+		uint8_t frontColor[3] = {255,255,255};
+		uint8_t backColor[3] = {255,0,0};
+		uint8_t blinkColor[3] = {255,100,0};
+
 	private:
 		void setNEOPin(bool on);
 		void toggleNEOPin();
@@ -33,7 +53,7 @@ class LED
 		void increaseColor(uint8_t id, uint8_t step, uint8_t led);
 		void decreaseColor(uint8_t id, uint8_t step, uint8_t led);
 
-		static const uint8_t _neoLEDS = 56;
+		static const uint8_t _neoLEDS = 21;
 
 		uint8_t ledBufferRED[_neoLEDS];
 		uint8_t ledBufferGREEN[_neoLEDS];
