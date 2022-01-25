@@ -131,6 +131,10 @@ int main(void)
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 
+  //Reset Motor PCB
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
+  HAL_Delay(200);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
 
   //Create RAILCONTROL for toggling voltage rails
   RAILCONTROL rail = RAILCONTROL();
@@ -157,10 +161,11 @@ int main(void)
   led.setAllNeopixels(0, 0, 0);
   HAL_Delay(2000);
   led.setNeopixel(255,255,255, 10);
+
   for(uint8_t cnt = 0; cnt < 11; cnt++)
 	{
-	  led.setNeopixel(255,255,255, 11+cnt);
-	  led.setNeopixel(255,255,255, 10-cnt);
+	  led.setNeopixel(255,255,255, 11 + cnt);
+	  led.setNeopixel(255,255,255, 10 - cnt);
 
 	  if(cnt < 6)
 	  {
