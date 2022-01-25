@@ -301,10 +301,16 @@ int main(void)
 			switch(led._mode)
 			{
 			case LED_BLINK_RIGHT:
-
+				led.animateBlink(true, false);
 				break;
-
+			case LED_BLINK_LEFT:
+				led.animateBlink(false, true);
+				break;
+			case LED_BLINK_BOTH:
+				led.animateBlink(true, true);
+				break;
 			case LED_IDLE:
+				break;
 			default:
 				uint8_t baseColor[3]={128,0,0};
 				led.animateSine(baseColor, 0.2, 200, 1);

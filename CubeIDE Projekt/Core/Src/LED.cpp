@@ -68,6 +68,10 @@ void LED::toggleNEOPin()
 	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_12);
 }
 
+void LED::animateBlink(bool right, bool left)
+{
+
+}
 
 void LED::animateSine(uint8_t* baseColor, float speed, float scaling, float dimming)
 {

@@ -30,7 +30,7 @@ class LED
 
 		void animateSine(uint8_t* baseColor, float speed, float scaling, float dimming);
 		void animateRainbow(float speed, float dimming);
-
+		void animateBlink(bool right, bool left);
 
 		void setNeopixel(uint8_t* rgb, uint8_t led);
 		void setNeopixel(uint8_t red, uint8_t green, uint8_t blue, uint8_t led);
