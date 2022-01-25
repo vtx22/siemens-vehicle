@@ -32,6 +32,7 @@
 #include "Servo.hpp"
 #include "LED.hpp"
 #include "sht3x.hpp"
+#include "mpu6050.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -154,14 +155,21 @@ int main(void)
   led.setSTAT2(true);
 
   led.setAllNeopixels(0, 0, 0);
-  HAL_Delay(500);
+  HAL_Delay(2000);
   led.setNeopixel(255,255,255, 10);
   for(uint8_t cnt = 0; cnt < 11; cnt++)
-    {
+	{
 	  led.setNeopixel(255,255,255, 11+cnt);
-  	led.setNeopixel(255,255,255, 10-cnt);
-  	HAL_Delay(50);
-    }
+	  led.setNeopixel(255,255,255, 10-cnt);
+
+	  if(cnt < 6)
+	  {
+		  led.setNeopixel(255,0,0, 21 + cnt);
+		  led.setNeopixel(255,0,0, 27 + cnt);
+	  }
+
+	  HAL_Delay(50);
+	}
 
   printer.printString("Waiting for a few seconds....");
   for(uint8_t cnt = 0; cnt < 5; cnt++)
@@ -180,11 +188,12 @@ int main(void)
   //Create TIMER Object for DS18B20
   TIMER timer = TIMER(&htim2);
   //Create DS18B20 Object for On-Board Sensor
-  DS18B20 tempPCB = DS18B20(&timer);
+  DS18B20 tempPCB = DS18B20(&timer, GPIOB, GPIO_PIN_13);
+  DS18B20 tempIOT = DS18B20(&timer, GPIOB, GPIO_PIN_3);
 
   printer.printString("Initializing UART1 Communication Handler...");
   //Create UART Handler
-  UART uart = UART(&huart1, &ina, &printer, &tempPCB);
+  UART uart = UART(&huart1, &ina, &printer, &tempPCB, &tempIOT);
   RX_BUFFER = uart.RXBuffer;  //Make the pointer to RXBuffer globally available, needed for the ISR
 
   printer.printString("Initializing Servo...");
@@ -251,6 +260,11 @@ int main(void)
   uint8_t batCnt = 0;
   uint8_t tempCnt = 0;
   uint32_t ledTicks = HAL_GetTick();
+  uint32_t ds18b20Ticks = ledTicks;
+
+
+  tempPCB._firstREQ();
+  tempIOT._firstREQ();
 
   while (1)
   {
@@ -264,6 +278,16 @@ int main(void)
 
 	      led.toggleSTAT(2);
 	    }
+
+	    if(HAL_GetTick() - ds18b20Ticks >= 800)
+	    {
+	    	tempPCB._lastTemp = tempPCB._secREQ();
+	    	tempPCB._firstREQ();
+	    	tempIOT._lastTemp = tempIOT._secREQ();
+	    	tempIOT._firstREQ();
+	    	ds18b20Ticks = HAL_GetTick();
+	    }
+
 
 	    if(HAL_GetTick() - ledTicks >= 50)
 	    {
@@ -304,7 +328,7 @@ int main(void)
 			{
 				sht3x_read_temperature_and_humidity(&handle, &temperature, &humidity);
 			}
-	    	//uart.sendTEMPstatus(temperature, humidity);
+	    	uart.sendTEMPstatus(temperature, humidity);
 	    	tempCnt = 0;
 	    }
 

@@ -1,12 +1,14 @@
 #include "UART.hpp"
 
 
-UART::UART(UART_HandleTypeDef* huart, INA226* ina, PRINTER* print, DS18B20* tempPCB)
+UART::UART(UART_HandleTypeDef* huart, INA226* ina, PRINTER* print, DS18B20* tempPCB, DS18B20* tempIOT, LED* led)
 {
 	_huart = huart;
 	_ina = ina;
 	_print = print;
 	_tempPCB = tempPCB;
+	_tempIOT = tempIOT;
+	_led = led;
 }
 
 void UART::startReceiveIT()
@@ -21,13 +23,37 @@ void UART::parseMessage()
 
 	switch(RXBuffer[1])		//Check Command ID
 	{
-		case 1:
+		case 0x01:
 			parseMSG1();
 			break;
-		case 8:
+		case 0x05:
+			parseMSG5();
+			break;
+		case 0x08:
 			break;
 		default:
 			break;
+	}
+}
+
+void UART::parseMSG5()
+{
+	switch(RXBuffer[2])
+	{
+	case 0x00:
+		_led->_mode = LED_ALL_OFF;
+		break;
+	case 0x01:
+		_led->_mode = LED_BLINK_LEFT;
+		break;
+	case 0x02:
+		_led->_mode = LED_BLINK_RIGHT;
+		break;
+	case 0x03:
+		_led->_mode = LED_BLINK_BOTH;
+		break;
+	default:
+		break;
 	}
 }
 
@@ -132,8 +158,8 @@ void UART::sendBATstatus()
 
 void UART::sendTEMPstatus(float outsideTemp, float hum)
 {
-	uint16_t pcbTemp = (uint16_t)(_tempPCB->readTemperature()* 100);
-	uint16_t iotTemp = (uint16_t)(0 * 100);
+	uint16_t pcbTemp = (uint16_t)(_tempPCB->_lastTemp * 100);
+	uint16_t iotTemp = (uint16_t)(_tempIOT->_lastTemp * 100);
 	uint16_t outTemp = (uint16_t)(outsideTemp * 100);
 	uint16_t humidity = (uint16_t)(hum * 10);
 

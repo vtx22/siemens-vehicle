@@ -5,13 +5,14 @@
 
 enum LED_MODE
 {
-	LED_IDLE = 0x00,
+	LED_ALL_OFF = 0x00,
 	LED_BLINK_LEFT = 0x01,
 	LED_BLINK_RIGHT = 0x02,
 	LED_BLINK_BOTH = 0x03,
 	LED_TOGGLE_FRONT = 0x04,
 	LED_TOGLLE_BACK = 0x05,
 	LED_CIRClE_LIGHT = 0x06,
+	LED_IDLE = 0x07,
 
 }
 typedef LED_MODE;
@@ -53,7 +54,11 @@ class LED
 		void increaseColor(uint8_t id, uint8_t step, uint8_t led);
 		void decreaseColor(uint8_t id, uint8_t step, uint8_t led);
 
-		static const uint8_t _neoLEDS = 21;
+		static const uint8_t _neoLEDS = 33;
+
+		//0  - 20 = front light
+		//21 - 26 = back light 1
+		//27 - 32 = back light 2
 
 		uint8_t ledBufferRED[_neoLEDS];
 		uint8_t ledBufferGREEN[_neoLEDS];

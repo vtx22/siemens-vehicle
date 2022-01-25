@@ -5,6 +5,7 @@
 #include "PRINTER.hpp"
 #include "INA226.hpp"
 #include "DS18B20.hpp"
+#include "LED.hpp"
 
 const static uint8_t RX_BUF_SIZE = 12;
 const static uint8_t TX_BUF_SIZE = 12;
@@ -13,7 +14,7 @@ class UART
 {
 	public:
 
-		UART(UART_HandleTypeDef* huart, INA226* ina, PRINTER* print, DS18B20* _tempPCB);
+		UART(UART_HandleTypeDef* huart, INA226* ina, PRINTER* print, DS18B20* tempPCB, DS18B20* tempIOT, LED* led);
 
 
 		std::array<uint8_t, TX_BUF_SIZE> statusMessage(uint8_t codes);
@@ -39,6 +40,7 @@ class UART
 		void startReceiveIT();
 		void parseMessage();
 		void parseMSG1();
+		void parseMSG5();
 		uint8_t RXBuffer[RX_BUF_SIZE];
 
 		//====================//
@@ -66,5 +68,7 @@ class UART
 		INA226* _ina;
 		PRINTER* _print;
 		DS18B20* _tempPCB;
+		DS18B20* _tempIOT;
+		LED* _led;
 
 };
