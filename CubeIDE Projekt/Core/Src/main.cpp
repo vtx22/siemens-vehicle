@@ -130,11 +130,8 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-
-  //Reset Motor PCB
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
-  HAL_Delay(200);
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
+  //Fan Full Speed
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
 
   //Create RAILCONTROL for toggling voltage rails
   RAILCONTROL rail = RAILCONTROL();
@@ -159,12 +156,10 @@ int main(void)
   led.setSTAT2(true);
 
   led.setAllNeopixels(0, 0, 0);
-  HAL_Delay(2000);
-  led.setNeopixel(255,255,255, 10);
-
+  HAL_Delay(3000);
   for(uint8_t cnt = 0; cnt < 11; cnt++)
 	{
-	  led.setNeopixel(255,255,255, 11 + cnt);
+	  led.setNeopixel(255,255,255, 10 + cnt);
 	  led.setNeopixel(255,255,255, 10 - cnt);
 
 	  if(cnt < 6)
@@ -177,7 +172,7 @@ int main(void)
 	}
 
   printer.printString("Waiting for a few seconds....");
-  for(uint8_t cnt = 0; cnt < 5; cnt++)
+  for(uint8_t cnt = 0; cnt < 3; cnt++)
   {
 	  led.toggleSTAT(2);
 	  HAL_Delay(1000);
@@ -194,11 +189,11 @@ int main(void)
   TIMER timer = TIMER(&htim2);
   //Create DS18B20 Object for On-Board Sensor
   DS18B20 tempPCB = DS18B20(&timer, GPIOB, GPIO_PIN_13);
-  DS18B20 tempIOT = DS18B20(&timer, GPIOB, GPIO_PIN_3);
+  DS18B20 tempIOT = DS18B20(&timer, GPIOA, GPIO_PIN_15);
 
   printer.printString("Initializing UART1 Communication Handler...");
   //Create UART Handler
-  UART uart = UART(&huart1, &ina, &printer, &tempPCB, &tempIOT);
+  UART uart = UART(&huart1, &ina, &printer, &tempPCB, &tempIOT, &led);
   RX_BUFFER = uart.RXBuffer;  //Make the pointer to RXBuffer globally available, needed for the ISR
 
   printer.printString("Initializing Servo...");
