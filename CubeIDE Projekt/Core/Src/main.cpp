@@ -67,6 +67,7 @@ UART_HandleTypeDef huart3;
 uint8_t *RX_BUFFER;
 bool parse_uart = false;
 bool ledRefresh = false;
+uint8_t* rx_buf;
 
 bool first = true;
 bool measured = true;
@@ -156,7 +157,7 @@ int main(void)
   led.setSTAT2(true);
 
   led.setAllNeopixels(0, 0, 0);
-  HAL_Delay(3000);
+  HAL_Delay(4000);
   for(uint8_t cnt = 0; cnt < 11; cnt++)
 	{
 	  led.setNeopixel(255,255,255, 10 + cnt);
@@ -168,7 +169,7 @@ int main(void)
 		  led.setNeopixel(255,0,0, 27 + cnt);
 	  }
 
-	  HAL_Delay(50);
+	  HAL_Delay(90);
 	}
 
   printer.printString("Waiting for a few seconds....");
@@ -275,8 +276,6 @@ int main(void)
 	    {
 	      uart.parseMessage();
 	      parse_uart = false;
-
-	      led.toggleSTAT(2);
 	    }
 
 	    if(HAL_GetTick() - ds18b20Ticks >= 800)
@@ -847,6 +846,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   {
 	  ledRefresh = true;
   }
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	__disable_irq();
+	parse_uart = true;
+	__enable_irq();
+    HAL_UART_Receive_IT(&huart1, RX_BUFFER, RX_BUF_SIZE);
 }
 /* USER CODE END 4 */
 

@@ -41,6 +41,7 @@ class UART
 		void parseMessage();
 		void parseMSG1();
 		void parseMSG5();
+		void parseMSG9();
 		uint8_t RXBuffer[RX_BUF_SIZE];
 
 		//====================//

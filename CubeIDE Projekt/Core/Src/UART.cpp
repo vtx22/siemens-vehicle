@@ -31,9 +31,23 @@ void UART::parseMessage()
 			break;
 		case 0x08:
 			break;
+		case 0x09:
+		parseMSG9();
+		break;
+
 		default:
 			break;
 	}
+}
+
+void UART::parseMSG9()
+{
+	uint8_t ledID = RXBuffer[2];
+	uint8_t r = RXBuffer[3];
+	uint8_t g = RXBuffer[4];
+	uint8_t b = RXBuffer[5];
+
+	_led->setNeopixel(r, g, b, ledID);
 }
 
 void UART::parseMSG5()
